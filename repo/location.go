@@ -21,7 +21,7 @@ func NewLocationRepo(db *sql.DB) *LocationRepo {
 // --- Public methods ---
 
 func (r LocationRepo) GetLocations() ([]*model.Location, error) {
-	rows, err := r.db.Query("SELECT time, lat, lng FROM location")
+	rows, err := r.db.Query("SELECT id, name, time, lat, lng FROM location")
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to query locations! (%s)", err)
@@ -38,11 +38,13 @@ func (r LocationRepo) GetLocations() ([]*model.Location, error) {
 }
 
 func (r LocationRepo) AddLocation(loc *model.Location) error {
+	name := loc.Name
 	time := data.FormatTime(loc.Time)
 	lat := loc.Lat
 	lng := loc.Lng
 
-	_, err := r.db.Exec("INSERT INTO location (time, lat, lng) VALUES (?, ?, ?)", time, lat, lng)
+	_, err := r.db.Exec("INSERT INTO location (name, time, lat, lng) VALUES (?, ?, ?, ?)", name,
+		time, lat, lng)
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to insert location! (%s)", err)
@@ -57,18 +59,20 @@ func (r LocationRepo) AddLocation(loc *model.Location) error {
 func (r LocationRepo) scanLocationRows(rows *sql.Rows) ([]*model.Location, error) {
 	var locs []*model.Location
 	for rows.Next() {
+		var id int32
+		var name string
 		var time string
 		var lat float32
 		var lng float32
 
-		err := rows.Scan(&time, &lat, &lng)
+		err := rows.Scan(&id, &name, &time, &lat, &lng)
 		if err != nil {
 			log.Print(err)
 			e := fmt.Sprintf("Failed to query locations! (%s)", err)
 			return nil, errors.New(e)
 		}
 
-		loc := &model.Location{data.ParseTime(time), lat, lng}
+		loc := &model.Location{id, name, data.ParseTime(time), lat, lng}
 		locs = append(locs, loc)
 	}
 

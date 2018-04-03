@@ -6,10 +6,11 @@ import (
 	"log"
 	"net/http"
 
+	aModel "kellnhofer.com/tracker/api/model"
 	"kellnhofer.com/tracker/config"
 	"kellnhofer.com/tracker/constant"
 	"kellnhofer.com/tracker/data"
-	"kellnhofer.com/tracker/model"
+	lModel "kellnhofer.com/tracker/model"
 	"kellnhofer.com/tracker/repo"
 )
 
@@ -38,7 +39,7 @@ func handleOptionsLoc(w http.ResponseWriter, r *http.Request) {
 func hanldeGetLoc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	locs, err := locRepo.GetLocations()
+	lLocs, err := locRepo.GetLocations()
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while reading locations.)",
@@ -46,7 +47,9 @@ func hanldeGetLoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	json, err := json.Marshal(locs)
+	aLocs := toApiLocs(lLocs)
+
+	json, err := json.Marshal(aLocs)
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while serializing data.)",
@@ -58,25 +61,43 @@ func hanldeGetLoc(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
+func toApiLocs(iLocs []*lModel.Location) []*aModel.Location {
+	var oLocs []*aModel.Location
+	for _, iLoc := range iLocs {
+		oLocs = append(oLocs, toApiLoc(iLoc))
+	}
+	return oLocs
+}
+
+func toApiLoc(iLoc *lModel.Location) *aModel.Location {
+	return &aModel.Location{iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng}
+}
+
 func handlePostLoc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	var loc model.Location
+	var aLoc aModel.Location
 
 	decoder := json.NewDecoder(r.Body)
-	err := decoder.Decode(&loc)
+	err := decoder.Decode(&aLoc)
 	if err != nil {
 		log.Printf("Invalid JSON! ('%s')", err)
 		http.Error(w, "Bad request! (Invalid JSON)", http.StatusBadRequest)
 		return
 	}
 
-	err = locRepo.AddLocation(&loc)
+	lLoc := toLogicLoc(&aLoc)
+
+	err = locRepo.AddLocation(lLoc)
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while adding location.)",
 			http.StatusInternalServerError)
 	}
+}
+
+func toLogicLoc(iLoc *aModel.Location) *lModel.Location {
+	return &lModel.Location{0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng}
 }
 
 func main() {

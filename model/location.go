@@ -3,7 +3,9 @@ package model
 import "time"
 
 type Location struct {
-	Time time.Time `json:"time"`
-	Lat  float32   `json:"lat"`
-	Lng  float32   `json:"lng"`
+	Id   int32
+	Name string
+	Time time.Time
+	Lat  float32
+	Lng  float32
 }
