@@ -5,7 +5,15 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+
+	"kellnhofer.com/tracker/config"
+	"kellnhofer.com/tracker/constant"
+	"kellnhofer.com/tracker/data"
+	"kellnhofer.com/tracker/model"
+	"kellnhofer.com/tracker/repo"
 )
+
+var locRepo *repo.LocationRepo
 
 func handleLoc(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "OPTIONS" {
@@ -30,7 +38,7 @@ func handleOptionsLoc(w http.ResponseWriter, r *http.Request) {
 func hanldeGetLoc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	locs, err := getLocations()
+	locs, err := locRepo.GetLocations()
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while reading locations.)",
@@ -53,7 +61,7 @@ func hanldeGetLoc(w http.ResponseWriter, r *http.Request) {
 func handlePostLoc(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 
-	var loc location
+	var loc model.Location
 
 	decoder := json.NewDecoder(r.Body)
 	err := decoder.Decode(&loc)
@@ -63,7 +71,7 @@ func handlePostLoc(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = addLocation(&loc)
+	err = locRepo.AddLocation(&loc)
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while adding location.)",
@@ -72,14 +80,19 @@ func handlePostLoc(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	conf := loadConfig()
+	conf := config.LoadConfig()
 
-	log.Print("Starting Tracker server 1.0.0-alpha.")
+	log.Printf("Starting Tracker server %s.", constant.AppVersion)
+
+	db := data.GetDb()
+	data.UpdateDb(db)
+
+	locRepo = repo.NewLocationRepo(db)
 
 	http.HandleFunc("/loc", handleLoc)
 
-	log.Printf("Listen on port '%d'.", conf.port)
-	err := http.ListenAndServe(fmt.Sprintf(":%d", conf.port), nil)
+	log.Printf("Listen on port '%d'.", conf.Port)
+	err := http.ListenAndServe(fmt.Sprintf(":%d", conf.Port), nil)
 	if err != nil {
 		log.Fatalf("Could not start server! (Error: %s)", err)
 	}
