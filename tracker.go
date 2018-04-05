@@ -70,7 +70,19 @@ func toApiLocs(iLocs []*lModel.Location) []*aModel.Location {
 }
 
 func toApiLoc(iLoc *lModel.Location) *aModel.Location {
-	return &aModel.Location{iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng}
+	return &aModel.Location{iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, toApiPers(iLoc.Persons)}
+}
+
+func toApiPers(iPers []*lModel.Person) []*aModel.Person {
+	var oPers []*aModel.Person
+	for _, iPer := range iPers {
+		oPers = append(oPers, toApiPer(iPer))
+	}
+	return oPers
+}
+
+func toApiPer(iPer *lModel.Person) *aModel.Person {
+	return &aModel.Person{iPer.FirstName, iPer.LastName}
 }
 
 func handlePostLoc(w http.ResponseWriter, r *http.Request) {
@@ -97,7 +109,23 @@ func handlePostLoc(w http.ResponseWriter, r *http.Request) {
 }
 
 func toLogicLoc(iLoc *aModel.Location) *lModel.Location {
-	return &lModel.Location{0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng}
+	return &lModel.Location{0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, toLogicPers(iLoc.Persons)}
+}
+
+func toLogicPers(iPers []*aModel.Person) []*lModel.Person {
+	if iPers == nil {
+		return nil
+	}
+
+	var oPers []*lModel.Person
+	for _, iPer := range iPers {
+		oPers = append(oPers, toLogicPer(iPer))
+	}
+	return oPers
+}
+
+func toLogicPer(iPer *aModel.Person) *lModel.Person {
+	return &lModel.Person{0, iPer.FirstName, iPer.LastName}
 }
 
 func main() {
