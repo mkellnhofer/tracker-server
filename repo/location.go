@@ -21,7 +21,7 @@ func NewLocationRepo(db *sql.DB) *LocationRepo {
 // --- Public methods ---
 
 func (r LocationRepo) GetLocations() ([]*model.Location, error) {
-	rows, err := r.db.Query("SELECT id, name, time, lat, lng FROM location")
+	rows, err := r.db.Query("SELECT id, name, time, lat, lng FROM location ORDER BY time ASC")
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to query locations! (%s)", err)
