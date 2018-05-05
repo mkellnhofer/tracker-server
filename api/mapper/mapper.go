@@ -14,7 +14,7 @@ func ToApiLocs(iLocs []*lModel.Location) []*aModel.Location {
 }
 
 func ToApiLoc(iLoc *lModel.Location) *aModel.Location {
-	return &aModel.Location{iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToApiPers(iLoc.Persons)}
+	return &aModel.Location{iLoc.Id, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToApiPers(iLoc.Persons)}
 }
 
 func ToApiPers(iPers []*lModel.Person) []*aModel.Person {

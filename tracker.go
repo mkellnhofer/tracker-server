@@ -38,8 +38,10 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Add public routes
 	router.HandleFunc("/loc", handleOptions).Methods("OPTIONS")
-	router.Handle("/loc", locCtrl.CreateGetHandler()).Methods("GET")
-	router.Handle("/loc", locCtrl.CreatePostHandler()).Methods("POST")
+	router.Handle("/loc", locCtrl.GetLocationsHandler()).Methods("GET")
+	router.Handle("/loc", locCtrl.CreateLocationHandler()).Methods("POST")
+	router.Handle("/loc/{id}", locCtrl.GetLocationHandler()).Methods("GET")
+	router.Handle("/loc/{id}", locCtrl.DeleteLocationHandler()).Methods("DELETE")
 
 	// Register router
 	http.Handle("/", router)

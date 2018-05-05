@@ -20,6 +20,20 @@ func NewLocationRepo(db *sql.DB) *LocationRepo {
 
 // --- Public methods ---
 
+func (r LocationRepo) ExistsLocation(id int64) (bool, error) {
+	row := r.db.QueryRow("SELECT COUNT(*) FROM location WHERE id = ?", id)
+
+	var n int
+	err := row.Scan(&n)
+	if err != nil {
+		log.Print(err)
+		e := fmt.Sprintf("Failed to query location! (%s)", err)
+		return false, errors.New(e)
+	}
+
+	return n > 0, nil
+}
+
 func (r LocationRepo) GetLocations() ([]*model.Location, error) {
 	rows, err := r.db.Query("SELECT id, name, time, lat, lng FROM location ORDER BY time ASC")
 	if err != nil {
@@ -45,6 +59,29 @@ func (r LocationRepo) GetLocations() ([]*model.Location, error) {
 	return locs, nil
 }
 
+func (r LocationRepo) GetLocation(id int64) (*model.Location, error) {
+	row := r.db.QueryRow("SELECT id, name, time, lat, lng FROM location WHERE id = ?", id)
+
+	loc, err := r.scanLocationRow(row)
+	switch {
+	case err == sql.ErrNoRows:
+		return nil, nil
+	case err != nil:
+		log.Print(err)
+		e := fmt.Sprintf("Failed to query location! (%s)", err)
+		return nil, errors.New(e)
+	default:
+	}
+
+	pers, err := r.GetLocationPersons(loc.Id)
+	if err != nil {
+		return nil, err
+	}
+	loc.Persons = pers
+
+	return loc, nil
+}
+
 func (r LocationRepo) GetLocationPersons(id int64) ([]*model.Person, error) {
 	rows, err := r.db.Query("SELECT p.id, p.first_name, p.last_name FROM location_person lp "+
 		"INNER JOIN person p ON lp.person_id = p.id "+
@@ -64,7 +101,7 @@ func (r LocationRepo) GetLocationPersons(id int64) ([]*model.Person, error) {
 	return pers, nil
 }
 
-func (r LocationRepo) AddLocation(loc *model.Location) error {
+func (r LocationRepo) AddLocation(loc *model.Location) (int64, error) {
 	name := loc.Name
 	time := data.FormatTime(loc.Time)
 	lat := loc.Lat
@@ -75,26 +112,26 @@ func (r LocationRepo) AddLocation(loc *model.Location) error {
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to insert location! (%s)", err)
-		return errors.New(e)
+		return 0, errors.New(e)
 	}
 
 	locId, err := res.LastInsertId()
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to insert location! (%s)", err)
-		return errors.New(e)
+		return 0, errors.New(e)
 	}
 
 	for _, per := range loc.Persons {
 		perId, err := r.GetPersonId(per.FirstName, per.LastName)
 		if err != nil {
-			return err
+			return 0, err
 		}
 
 		if perId == 0 {
 			perId, err = r.CreatePerson(per.FirstName, per.LastName)
 			if err != nil {
-				return err
+				return 0, err
 			}
 		}
 
@@ -103,10 +140,20 @@ func (r LocationRepo) AddLocation(loc *model.Location) error {
 		if err != nil {
 			log.Print(err)
 			e := fmt.Sprintf("Failed to insert location! (%s)", err)
-			return errors.New(e)
+			return 0, errors.New(e)
 		}
 	}
 
+	return locId, nil
+}
+
+func (r LocationRepo) DeleteLocation(id int64) error {
+	_, err := r.db.Exec("DELETE FROM location WHERE id = ?", id)
+	if err != nil {
+		log.Print(err)
+		e := fmt.Sprintf("Failed to delete location! (%s)", err)
+		return errors.New(e)
+	}
 	return nil
 }
 
@@ -156,20 +203,12 @@ func (r LocationRepo) CreatePerson(firstName string, lastName string) (int64, er
 func (r LocationRepo) scanLocationRows(rows *sql.Rows) ([]*model.Location, error) {
 	var locs []*model.Location
 	for rows.Next() {
-		var id int64
-		var name string
-		var time string
-		var lat float32
-		var lng float32
-
-		err := rows.Scan(&id, &name, &time, &lat, &lng)
+		loc, err := r.scanLocationRow(rows)
 		if err != nil {
 			log.Print(err)
 			e := fmt.Sprintf("Failed to query locations! (%s)", err)
 			return nil, errors.New(e)
 		}
-
-		loc := &model.Location{id, name, data.ParseTime(time), lat, lng, nil}
 		locs = append(locs, loc)
 	}
 
@@ -180,6 +219,21 @@ func (r LocationRepo) scanLocationRows(rows *sql.Rows) ([]*model.Location, error
 	}
 
 	return locs, nil
+}
+
+func (r LocationRepo) scanLocationRow(scan Scanner) (*model.Location, error) {
+	var id int64
+	var name string
+	var time string
+	var lat float32
+	var lng float32
+
+	err := scan.Scan(&id, &name, &time, &lat, &lng)
+	if err != nil {
+		return nil, err
+	}
+
+	return &model.Location{id, name, data.ParseTime(time), lat, lng, nil}, nil
 }
 
 func (r LocationRepo) scanLocationPersonRows(rows *sql.Rows) ([]*model.Person, error) {

@@ -20,25 +20,37 @@ func NewLocationController(lRepo *repo.LocationRepo) *locationController {
 
 // --- Public methods ---
 
-func (c locationController) CreateGetHandler() http.HandlerFunc {
+func (c locationController) GetLocationsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		c.handleGet(w, r)
+		c.handleGetLocations(w, r)
 	}
 }
 
-func (c locationController) CreatePostHandler() http.HandlerFunc {
+func (c locationController) CreateLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
-		c.handlePost(w, r)
+		c.handleCreateLocation(w, r)
+	}
+}
+
+func (c locationController) GetLocationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		c.handleGetLocation(w, r)
+	}
+}
+
+func (c locationController) DeleteLocationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		c.handleDeleteLocation(w, r)
 	}
 }
 
 // --- Private methods ---
 
-func (c locationController) handleGet(w http.ResponseWriter, r *http.Request) {
-	log.Println("Handle get.")
-
+func (c locationController) handleGetLocations(w http.ResponseWriter, r *http.Request) {
 	lLocs, err := c.lRepo.GetLocations()
 	if err != nil {
 		log.Print(err)
@@ -61,9 +73,7 @@ func (c locationController) handleGet(w http.ResponseWriter, r *http.Request) {
 	w.Write(json)
 }
 
-func (c locationController) handlePost(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-
+func (c locationController) handleCreateLocation(w http.ResponseWriter, r *http.Request) {
 	var aLoc aModel.Location
 
 	decoder := json.NewDecoder(r.Body)
@@ -76,10 +86,85 @@ func (c locationController) handlePost(w http.ResponseWriter, r *http.Request) {
 
 	lLoc := mapper.ToLogicLoc(&aLoc)
 
-	err = c.lRepo.AddLocation(lLoc)
+	id, err := c.lRepo.AddLocation(lLoc)
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while adding location.)",
 			http.StatusInternalServerError)
+	}
+
+	aLoc.Id = id
+
+	json, err := json.Marshal(aLoc)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while serializing data.)",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (c locationController) handleGetLocation(w http.ResponseWriter, r *http.Request) {
+	id, err := getIdFromPath(r.URL.Path)
+	if err != nil {
+		log.Printf("Invalid location ID!")
+		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
+		return
+	}
+
+	lLoc, err := c.lRepo.GetLocation(id)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while reading location.)",
+			http.StatusInternalServerError)
+		return
+	}
+	if lLoc == nil {
+		http.Error(w, "Not found! (Unknown location ID.)", http.StatusNotFound)
+		return
+	}
+
+	aLoc := mapper.ToApiLoc(lLoc)
+
+	json, err := json.Marshal(aLoc)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while serializing data.)",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (c locationController) handleDeleteLocation(w http.ResponseWriter, r *http.Request) {
+	id, err := getIdFromPath(r.URL.Path)
+	if err != nil {
+		log.Printf("Invalid location ID!")
+		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
+		return
+	}
+
+	exists, err := c.lRepo.ExistsLocation(id)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while deleting location.)",
+			http.StatusInternalServerError)
+	}
+	if !exists {
+		http.Error(w, "Not found! (Unknown location ID.)", http.StatusNotFound)
+		return
+	}
+
+	err = c.lRepo.DeleteLocation(id)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while deleting location.)",
+			http.StatusInternalServerError)
+		return
 	}
 }
