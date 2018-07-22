@@ -40,6 +40,7 @@ func main() {
 	router.HandleFunc("/loc", handleOptions).Methods("OPTIONS")
 	router.Handle("/loc", locCtrl.GetLocationsHandler()).Methods("GET")
 	router.Handle("/loc", locCtrl.CreateLocationHandler()).Methods("POST")
+	router.Handle("/loc/deleted", locCtrl.GetDeletedLocationIdsHandler()).Methods("GET")
 	router.Handle("/loc/{id}", locCtrl.GetLocationHandler()).Methods("GET")
 	router.Handle("/loc/{id}", locCtrl.DeleteLocationHandler()).Methods("DELETE")
 

@@ -7,6 +7,7 @@ import (
 
 	"kellnhofer.com/tracker/api/mapper"
 	aModel "kellnhofer.com/tracker/api/model"
+	lModel "kellnhofer.com/tracker/model"
 	"kellnhofer.com/tracker/repo"
 )
 
@@ -48,10 +49,29 @@ func (c locationController) DeleteLocationHandler() http.HandlerFunc {
 	}
 }
 
+func (c locationController) GetDeletedLocationIdsHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		c.handleGetDeletedLocationIds(w, r)
+	}
+}
+
 // --- Private methods ---
 
 func (c locationController) handleGetLocations(w http.ResponseWriter, r *http.Request) {
-	lLocs, err := c.lRepo.GetLocations()
+	ct, err := getChangeTimeFromQuery(r.URL.Query())
+	if err != nil {
+		log.Printf("Invalid change time!")
+		http.Error(w, "Bad request! (Invalid change time.)", http.StatusBadRequest)
+		return
+	}
+
+	var lLocs []*lModel.Location
+	if ct > 0 {
+		lLocs, err = c.lRepo.GetLocationsByChangeTime(ct)
+	} else {
+		lLocs, err = c.lRepo.GetLocations()
+	}
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while reading locations.)",
@@ -86,7 +106,7 @@ func (c locationController) handleCreateLocation(w http.ResponseWriter, r *http.
 
 	lLoc := mapper.ToLogicLoc(&aLoc)
 
-	id, err := c.lRepo.AddLocation(lLoc)
+	id, ct, err := c.lRepo.AddLocation(lLoc)
 	if err != nil {
 		log.Print(err)
 		http.Error(w, "Internal server error! (Error while adding location.)",
@@ -94,6 +114,7 @@ func (c locationController) handleCreateLocation(w http.ResponseWriter, r *http.
 	}
 
 	aLoc.Id = id
+	aLoc.ChangeTime = ct
 
 	json, err := json.Marshal(aLoc)
 	if err != nil {
@@ -167,4 +188,32 @@ func (c locationController) handleDeleteLocation(w http.ResponseWriter, r *http.
 			http.StatusInternalServerError)
 		return
 	}
+}
+
+func (c locationController) handleGetDeletedLocationIds(w http.ResponseWriter, r *http.Request) {
+	dt, err := getDeletionTimeFromQuery(r.URL.Query())
+	if err != nil {
+		log.Printf("Invalid deletion time!")
+		http.Error(w, "Bad request! (Invalid deletion time.)", http.StatusBadRequest)
+		return
+	}
+
+	ids, err := c.lRepo.GetDeletedLocationIdsByDeletionTime(dt)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while reading locations.)",
+			http.StatusInternalServerError)
+		return
+	}
+
+	json, err := json.Marshal(ids)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while serializing data.)",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
 }

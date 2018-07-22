@@ -14,7 +14,8 @@ func ToApiLocs(iLocs []*lModel.Location) []*aModel.Location {
 }
 
 func ToApiLoc(iLoc *lModel.Location) *aModel.Location {
-	return &aModel.Location{iLoc.Id, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToApiPers(iLoc.Persons)}
+	return &aModel.Location{iLoc.Id, iLoc.ChangeTime, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng,
+		ToApiPers(iLoc.Persons)}
 }
 
 func ToApiPers(iPers []*lModel.Person) []*aModel.Person {
@@ -30,7 +31,7 @@ func ToApiPer(iPer *lModel.Person) *aModel.Person {
 }
 
 func ToLogicLoc(iLoc *aModel.Location) *lModel.Location {
-	return &lModel.Location{0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToLogicPers(iLoc.Persons)}
+	return &lModel.Location{0, 0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToLogicPers(iLoc.Persons)}
 }
 
 func ToLogicPers(iPers []*aModel.Person) []*lModel.Person {
