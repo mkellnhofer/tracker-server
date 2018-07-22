@@ -6,7 +6,7 @@ import (
 )
 
 func ToApiLocs(iLocs []*lModel.Location) []*aModel.Location {
-	var oLocs []*aModel.Location
+	oLocs := []*aModel.Location{}
 	for _, iLoc := range iLocs {
 		oLocs = append(oLocs, ToApiLoc(iLoc))
 	}
@@ -19,7 +19,7 @@ func ToApiLoc(iLoc *lModel.Location) *aModel.Location {
 }
 
 func ToApiPers(iPers []*lModel.Person) []*aModel.Person {
-	var oPers []*aModel.Person
+	oPers := []*aModel.Person{}
 	for _, iPer := range iPers {
 		oPers = append(oPers, ToApiPer(iPer))
 	}

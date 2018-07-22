@@ -242,7 +242,7 @@ func (r LocationRepo) getLocationRows(rows *sql.Rows, err error) ([]*model.Locat
 }
 
 func (r LocationRepo) scanLocationRows(rows *sql.Rows) ([]*model.Location, error) {
-	var locs []*model.Location
+	locs := []*model.Location{}
 	for rows.Next() {
 		loc, err := r.scanLocationRow(rows)
 		if err != nil {
@@ -279,7 +279,7 @@ func (r LocationRepo) scanLocationRow(scan Scanner) (*model.Location, error) {
 }
 
 func (r LocationRepo) scanDeletedLocationRows(rows *sql.Rows) ([]int64, error) {
-	var ids []int64
+	ids := []int64{}
 	for rows.Next() {
 		id, err := r.scanDeletedLocationRow(rows)
 		if err != nil {
@@ -311,7 +311,7 @@ func (r LocationRepo) scanDeletedLocationRow(scan Scanner) (int64, error) {
 }
 
 func (r LocationRepo) scanLocationPersonRows(rows *sql.Rows) ([]*model.Person, error) {
-	var pers []*model.Person
+	pers := []*model.Person{}
 	for rows.Next() {
 		var id int64
 		var firstName string
