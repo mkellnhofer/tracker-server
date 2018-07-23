@@ -31,7 +31,8 @@ func ToApiPer(iPer *lModel.Person) *aModel.Person {
 }
 
 func ToLogicLoc(iLoc *aModel.Location) *lModel.Location {
-	return &lModel.Location{0, 0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng, ToLogicPers(iLoc.Persons)}
+	return &lModel.Location{iLoc.Id, 0, iLoc.Name, iLoc.Time, iLoc.Lat, iLoc.Lng,
+		ToLogicPers(iLoc.Persons)}
 }
 
 func ToLogicPers(iPers []*aModel.Person) []*lModel.Person {

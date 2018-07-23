@@ -62,32 +62,13 @@ func (r LocationRepo) GetLocation(id int64) (*model.Location, error) {
 	default:
 	}
 
-	pers, err := r.GetLocationPersons(loc.Id)
+	pers, err := r.getLocationPersons(loc.Id)
 	if err != nil {
 		return nil, err
 	}
 	loc.Persons = pers
 
 	return loc, nil
-}
-
-func (r LocationRepo) GetLocationPersons(id int64) ([]*model.Person, error) {
-	rows, err := r.db.Query("SELECT p.id, p.first_name, p.last_name FROM location_person lp "+
-		"INNER JOIN person p ON lp.person_id = p.id "+
-		"WHERE lp.location_id = ?", id)
-	if err != nil {
-		log.Print(err)
-		e := fmt.Sprintf("Failed to query location persons! (%s)", err)
-		return nil, errors.New(e)
-	}
-	defer rows.Close()
-
-	pers, err := r.scanLocationPersonRows(rows)
-	if err != nil {
-		return nil, err
-	}
-
-	return pers, nil
 }
 
 func (r LocationRepo) AddLocation(loc *model.Location) (int64, int64, error) {
@@ -112,29 +93,41 @@ func (r LocationRepo) AddLocation(loc *model.Location) (int64, int64, error) {
 		return 0, 0, errors.New(e)
 	}
 
-	for _, per := range loc.Persons {
-		perId, err := r.GetPersonId(per.FirstName, per.LastName)
-		if err != nil {
-			return 0, 0, err
-		}
-
-		if perId == 0 {
-			perId, err = r.CreatePerson(per.FirstName, per.LastName)
-			if err != nil {
-				return 0, 0, err
-			}
-		}
-
-		_, err = r.db.Exec("INSERT INTO location_person (location_id, person_id) VALUES (?, ?)",
-			locId, perId)
-		if err != nil {
-			log.Print(err)
-			e := fmt.Sprintf("Failed to insert location! (%s)", err)
-			return 0, 0, errors.New(e)
-		}
+	err = r.createLocationPersons(locId, loc.Persons)
+	if err != nil {
+		return 0, 0, err
 	}
 
 	return locId, ct, nil
+}
+
+func (r LocationRepo) ChangeLocation(loc *model.Location) (int64, error) {
+	id := loc.Id
+	ct := time.Now().Unix()
+	name := loc.Name
+	t := data.FormatTime(loc.Time)
+	lat := loc.Lat
+	lng := loc.Lng
+
+	_, err := r.db.Exec("UPDATE location SET chng_time=?, name=?, time=?, lat=?, lng=? WHERE "+
+		"id = ?", ct, name, t, lat, lng, id)
+	if err != nil {
+		log.Print(err)
+		e := fmt.Sprintf("Failed to update location! (%s)", err)
+		return 0, errors.New(e)
+	}
+
+	err = r.deleteLocationPersons(id)
+	if err != nil {
+		return 0, err
+	}
+
+	err = r.createLocationPersons(id, loc.Persons)
+	if err != nil {
+		return 0, err
+	}
+
+	return ct, nil
 }
 
 func (r LocationRepo) DeleteLocation(id int64) error {
@@ -231,7 +224,7 @@ func (r LocationRepo) getLocationRows(rows *sql.Rows, err error) ([]*model.Locat
 	}
 
 	for _, loc := range locs {
-		pers, err := r.GetLocationPersons(loc.Id)
+		pers, err := r.getLocationPersons(loc.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -310,6 +303,25 @@ func (r LocationRepo) scanDeletedLocationRow(scan Scanner) (int64, error) {
 	return id, nil
 }
 
+func (r LocationRepo) getLocationPersons(id int64) ([]*model.Person, error) {
+	rows, err := r.db.Query("SELECT p.id, p.first_name, p.last_name FROM location_person lp "+
+		"INNER JOIN person p ON lp.person_id = p.id "+
+		"WHERE lp.location_id = ?", id)
+	if err != nil {
+		log.Print(err)
+		e := fmt.Sprintf("Failed to query location persons! (%s)", err)
+		return nil, errors.New(e)
+	}
+	defer rows.Close()
+
+	pers, err := r.scanLocationPersonRows(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	return pers, nil
+}
+
 func (r LocationRepo) scanLocationPersonRows(rows *sql.Rows) ([]*model.Person, error) {
 	pers := []*model.Person{}
 	for rows.Next() {
@@ -335,4 +347,41 @@ func (r LocationRepo) scanLocationPersonRows(rows *sql.Rows) ([]*model.Person, e
 	}
 
 	return pers, nil
+}
+
+func (r LocationRepo) createLocationPersons(locId int64, persons []*model.Person) error {
+	for _, per := range persons {
+		perId, err := r.GetPersonId(per.FirstName, per.LastName)
+		if err != nil {
+			return err
+		}
+
+		if perId == 0 {
+			perId, err = r.CreatePerson(per.FirstName, per.LastName)
+			if err != nil {
+				return err
+			}
+		}
+
+		_, err = r.db.Exec("INSERT INTO location_person (location_id, person_id) VALUES (?, ?)",
+			locId, perId)
+		if err != nil {
+			log.Print(err)
+			e := fmt.Sprintf("Failed to insert location person! (%s)", err)
+			return errors.New(e)
+		}
+	}
+
+	return nil
+}
+
+func (r LocationRepo) deleteLocationPersons(locId int64) error {
+	_, err := r.db.Exec("DELETE FROM location_person WHERE location_id = ?", locId)
+	if err != nil {
+		log.Print(err)
+		e := fmt.Sprintf("Failed to delete location persons! (%s)", err)
+		return errors.New(e)
+	}
+
+	return nil
 }

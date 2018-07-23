@@ -42,6 +42,13 @@ func (c locationController) GetLocationHandler() http.HandlerFunc {
 	}
 }
 
+func (c locationController) ChangeLocationHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Origin", "*")
+		c.handleChangeLocation(w, r)
+	}
+}
+
 func (c locationController) DeleteLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Access-Control-Allow-Origin", "*")
@@ -149,6 +156,60 @@ func (c locationController) handleGetLocation(w http.ResponseWriter, r *http.Req
 	}
 
 	aLoc := mapper.ToApiLoc(lLoc)
+
+	json, err := json.Marshal(aLoc)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while serializing data.)",
+			http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	w.Write(json)
+}
+
+func (c locationController) handleChangeLocation(w http.ResponseWriter, r *http.Request) {
+	id, err := getIdFromPath(r.URL.Path)
+	if err != nil {
+		log.Printf("Invalid location ID!")
+		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
+		return
+	}
+
+	var aLoc aModel.Location
+
+	decoder := json.NewDecoder(r.Body)
+	err = decoder.Decode(&aLoc)
+	if err != nil {
+		log.Printf("Invalid JSON! ('%s')", err)
+		http.Error(w, "Bad request! (Invalid JSON)", http.StatusBadRequest)
+		return
+	}
+
+	exists, err := c.lRepo.ExistsLocation(id)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while changing location.)",
+			http.StatusInternalServerError)
+	}
+	if !exists {
+		http.Error(w, "Not found! (Unknown location ID.)", http.StatusNotFound)
+		return
+	}
+
+	aLoc.Id = id
+
+	lLoc := mapper.ToLogicLoc(&aLoc)
+
+	ct, err := c.lRepo.ChangeLocation(lLoc)
+	if err != nil {
+		log.Print(err)
+		http.Error(w, "Internal server error! (Error while changeing location.)",
+			http.StatusInternalServerError)
+	}
+
+	aLoc.ChangeTime = ct
 
 	json, err := json.Marshal(aLoc)
 	if err != nil {
