@@ -7,7 +7,8 @@ import (
 )
 
 type Config struct {
-	Port int
+	Port     int
+	Password string
 }
 
 func LoadConfig() *Config {
@@ -17,8 +18,9 @@ func LoadConfig() *Config {
 	}
 
 	port := getIntValue(cfg, "server", "port")
+	password := getStringValue(cfg, "authentication", "password")
 
-	return &Config{port}
+	return &Config{port, password}
 }
 
 func getStringValue(file *ini.File, secName string, keyName string) string {
