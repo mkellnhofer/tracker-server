@@ -9,10 +9,10 @@ import (
 
 func getIdFromPath(path string) (int64, error) {
 	pathParts := strings.Split(path, "/")
-	if len(pathParts) < 3 {
+	if len(pathParts) < 5 {
 		return 0, errors.New("invalid path")
 	}
-	return strconv.ParseInt(pathParts[2], 10, 64)
+	return strconv.ParseInt(pathParts[4], 10, 64)
 }
 
 func getChangeTimeFromQuery(query url.Values) (int64, error) {

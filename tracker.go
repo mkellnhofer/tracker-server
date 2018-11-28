@@ -51,18 +51,20 @@ func main() {
 
 	// Create router
 	router := mux.NewRouter().StrictSlash(true)
+	// Create API sub route
+	apiRoute := router.PathPrefix("/api/v1").Subrouter()
 	// Add public routes
-	router.HandleFunc("/loc", handleOptions).Methods("OPTIONS")
+	apiRoute.HandleFunc("/loc", handleOptions).Methods("OPTIONS")
 	// Add protected routes
-	router.Handle("/loc", createRoute(proRoute, locCtrl.GetLocationsHandler())).Methods("GET")
-	router.Handle("/loc", createRoute(proRoute, locCtrl.CreateLocationHandler())).Methods("POST")
-	router.Handle("/loc/deleted", createRoute(proRoute, locCtrl.GetDeletedLocationIdsHandler())).
+	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.GetLocationsHandler())).Methods("GET")
+	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.CreateLocationHandler())).Methods("POST")
+	apiRoute.Handle("/loc/deleted", createRoute(proRoute, locCtrl.GetDeletedLocationIdsHandler())).
 		Methods("GET")
-	router.Handle("/loc/{id}", createRoute(proRoute, locCtrl.GetLocationHandler())).
+	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.GetLocationHandler())).
 		Methods("GET")
-	router.Handle("/loc/{id}", createRoute(proRoute, locCtrl.ChangeLocationHandler())).
+	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.ChangeLocationHandler())).
 		Methods("PUT")
-	router.Handle("/loc/{id}", createRoute(proRoute, locCtrl.DeleteLocationHandler())).
+	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.DeleteLocationHandler())).
 		Methods("DELETE")
 
 	// Register router
