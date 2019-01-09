@@ -15,7 +15,7 @@ import (
 	"kellnhofer.com/tracker/constant"
 )
 
-const curDbVers = 1
+const curDbVers = 2
 
 // --- Public methods ---
 

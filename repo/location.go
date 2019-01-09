@@ -36,20 +36,20 @@ func (r LocationRepo) ExistsLocation(id int64) (bool, error) {
 }
 
 func (r LocationRepo) GetLocations() ([]*model.Location, error) {
-	rows, err := r.db.Query("SELECT id, chng_time, name, time, lat, lng FROM location ORDER BY " +
-		"time ASC")
+	rows, err := r.db.Query("SELECT id, chng_time, name, time, lat, lng, desc FROM location " +
+		"ORDER BY time ASC")
 	return r.getLocationRows(rows, err)
 }
 
 func (r LocationRepo) GetLocationsByChangeTime(ct int64) ([]*model.Location, error) {
-	rows, err := r.db.Query("SELECT id, chng_time, name, time, lat, lng FROM location WHERE "+
-		"chng_time >= ? ORDER BY time ASC", ct)
+	rows, err := r.db.Query("SELECT id, chng_time, name, time, lat, lng, desc FROM location "+
+		"WHERE chng_time >= ? ORDER BY time ASC", ct)
 	return r.getLocationRows(rows, err)
 }
 
 func (r LocationRepo) GetLocation(id int64) (*model.Location, error) {
-	row := r.db.QueryRow("SELECT id, chng_time, name, time, lat, lng FROM location WHERE id = ?",
-		id)
+	row := r.db.QueryRow("SELECT id, chng_time, name, time, lat, lng, desc FROM location "+
+		"WHERE id = ?", id)
 
 	loc, err := r.scanLocationRow(row)
 	switch {
@@ -77,9 +77,10 @@ func (r LocationRepo) AddLocation(loc *model.Location) (int64, int64, error) {
 	t := data.FormatTime(loc.Time)
 	lat := loc.Lat
 	lng := loc.Lng
+	desc := loc.Description
 
-	res, err := r.db.Exec("INSERT INTO location (chng_time, name, time, lat, lng) VALUES (?, ?, "+
-		"?, ?, ?)", ct, name, t, lat, lng)
+	res, err := r.db.Exec("INSERT INTO location (chng_time, name, time, lat, lng, desc) "+
+		"VALUES (?, ?, ?, ?, ?, ?)", ct, name, t, lat, lng, desc)
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to insert location! (%s)", err)
@@ -108,9 +109,10 @@ func (r LocationRepo) ChangeLocation(loc *model.Location) (int64, error) {
 	t := data.FormatTime(loc.Time)
 	lat := loc.Lat
 	lng := loc.Lng
+	desc := loc.Description
 
-	_, err := r.db.Exec("UPDATE location SET chng_time=?, name=?, time=?, lat=?, lng=? WHERE "+
-		"id = ?", ct, name, t, lat, lng, id)
+	_, err := r.db.Exec("UPDATE location SET chng_time=?, name=?, time=?, lat=?, lng=?, desc=? "+
+		"WHERE id = ?", ct, name, t, lat, lng, desc, id)
 	if err != nil {
 		log.Print(err)
 		e := fmt.Sprintf("Failed to update location! (%s)", err)
@@ -262,13 +264,14 @@ func (r LocationRepo) scanLocationRow(scan Scanner) (*model.Location, error) {
 	var t string
 	var lat float32
 	var lng float32
+	var desc string
 
-	err := scan.Scan(&id, &ct, &name, &t, &lat, &lng)
+	err := scan.Scan(&id, &ct, &name, &t, &lat, &lng, &desc)
 	if err != nil {
 		return nil, err
 	}
 
-	return &model.Location{id, ct, name, data.ParseTime(t), lat, lng, nil}, nil
+	return &model.Location{id, ct, name, data.ParseTime(t), lat, lng, desc, nil}, nil
 }
 
 func (r LocationRepo) scanDeletedLocationRows(rows *sql.Rows) ([]int64, error) {
