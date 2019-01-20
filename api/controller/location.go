@@ -23,42 +23,36 @@ func NewLocationController(lRepo *repo.LocationRepo) *locationController {
 
 func (c locationController) GetLocationsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleGetLocations(w, r)
 	}
 }
 
 func (c locationController) CreateLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleCreateLocation(w, r)
 	}
 }
 
 func (c locationController) GetLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleGetLocation(w, r)
 	}
 }
 
 func (c locationController) ChangeLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleChangeLocation(w, r)
 	}
 }
 
 func (c locationController) DeleteLocationHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleDeleteLocation(w, r)
 	}
 }
 
 func (c locationController) GetDeletedLocationIdsHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Access-Control-Allow-Origin", "*")
 		c.handleGetDeletedLocationIds(w, r)
 	}
 }

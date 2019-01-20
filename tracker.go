@@ -7,6 +7,7 @@ import (
 
 	"github.com/codegangsta/negroni"
 	"github.com/gorilla/mux"
+	"github.com/rs/cors"
 	"kellnhofer.com/tracker/api/controller"
 	"kellnhofer.com/tracker/config"
 	"kellnhofer.com/tracker/constant"
@@ -14,12 +15,6 @@ import (
 	"kellnhofer.com/tracker/middleware"
 	"kellnhofer.com/tracker/repo"
 )
-
-func handleOptions(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "HEAD, GET, POST, PUT, DELETE")
-	w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
-}
 
 func createRoute(route *negroni.Negroni, handler http.HandlerFunc) http.Handler {
 	newRoute := route.With()
@@ -53,8 +48,6 @@ func main() {
 	router := mux.NewRouter().StrictSlash(true)
 	// Create API sub route
 	apiRoute := router.PathPrefix("/api/v1").Subrouter()
-	// Add public routes
-	apiRoute.HandleFunc("/loc", handleOptions).Methods("OPTIONS")
 	// Add protected routes
 	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.GetLocationsHandler())).Methods("GET")
 	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.CreateLocationHandler())).Methods("POST")
@@ -67,8 +60,11 @@ func main() {
 	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.DeleteLocationHandler())).
 		Methods("DELETE")
 
-	// Register router
-	http.Handle("/", router)
+	// Add CORS middleware
+	handler := cors.AllowAll().Handler(router)
+
+	// Register handler
+	http.Handle("/", handler)
 
 	// Start HTTP server
 	log.Printf("Listen on port '%d'.", conf.Port)
