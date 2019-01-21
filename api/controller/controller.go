@@ -1,32 +1,30 @@
 package controller
 
 import (
-	"errors"
-	"net/url"
+	"net/http"
 	"strconv"
-	"strings"
+
+	"github.com/gorilla/mux"
 )
 
-func getIdFromPath(path string) (int64, error) {
-	pathParts := strings.Split(path, "/")
-	if len(pathParts) < 5 {
-		return 0, errors.New("invalid path")
+func getId(r *http.Request) (int64, error) {
+	vars := mux.Vars(r)
+	v := vars["id"]
+	return strconv.ParseInt(v, 10, 64)
+}
+
+func getChangeTime(r *http.Request) (int64, error) {
+	v := r.FormValue("change_time")
+	if v == "" {
+		return int64(0), nil
 	}
-	return strconv.ParseInt(pathParts[4], 10, 64)
+	return strconv.ParseInt(v, 10, 64)
 }
 
-func getChangeTimeFromQuery(query url.Values) (int64, error) {
-	return getIntParamFromQuery(query, "change_time")
-}
-
-func getDeletionTimeFromQuery(query url.Values) (int64, error) {
-	return getIntParamFromQuery(query, "deletion_time")
-}
-
-func getIntParamFromQuery(query url.Values, name string) (int64, error) {
-	queryValue := query.Get(name)
-	if queryValue == "" {
-		return 0, nil
+func getDeletionTime(r *http.Request) (int64, error) {
+	v := r.FormValue("deletion_time")
+	if v == "" {
+		return int64(0), nil
 	}
-	return strconv.ParseInt(queryValue, 10, 64)
+	return strconv.ParseInt(v, 10, 64)
 }

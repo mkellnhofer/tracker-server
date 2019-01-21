@@ -60,7 +60,7 @@ func (c locationController) GetDeletedLocationIdsHandler() http.HandlerFunc {
 // --- Private methods ---
 
 func (c locationController) handleGetLocations(w http.ResponseWriter, r *http.Request) {
-	ct, err := getChangeTimeFromQuery(r.URL.Query())
+	ct, err := getChangeTime(r)
 	if err != nil {
 		log.Printf("Invalid change time!")
 		http.Error(w, "Bad request! (Invalid change time.)", http.StatusBadRequest)
@@ -130,7 +130,7 @@ func (c locationController) handleCreateLocation(w http.ResponseWriter, r *http.
 }
 
 func (c locationController) handleGetLocation(w http.ResponseWriter, r *http.Request) {
-	id, err := getIdFromPath(r.URL.Path)
+	id, err := getId(r)
 	if err != nil {
 		log.Printf("Invalid location ID!")
 		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
@@ -164,7 +164,7 @@ func (c locationController) handleGetLocation(w http.ResponseWriter, r *http.Req
 }
 
 func (c locationController) handleChangeLocation(w http.ResponseWriter, r *http.Request) {
-	id, err := getIdFromPath(r.URL.Path)
+	id, err := getId(r)
 	if err != nil {
 		log.Printf("Invalid location ID!")
 		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
@@ -218,7 +218,7 @@ func (c locationController) handleChangeLocation(w http.ResponseWriter, r *http.
 }
 
 func (c locationController) handleDeleteLocation(w http.ResponseWriter, r *http.Request) {
-	id, err := getIdFromPath(r.URL.Path)
+	id, err := getId(r)
 	if err != nil {
 		log.Printf("Invalid location ID!")
 		http.Error(w, "Bad request! (Invalid location ID.)", http.StatusBadRequest)
@@ -246,7 +246,7 @@ func (c locationController) handleDeleteLocation(w http.ResponseWriter, r *http.
 }
 
 func (c locationController) handleGetDeletedLocationIds(w http.ResponseWriter, r *http.Request) {
-	dt, err := getDeletionTimeFromQuery(r.URL.Query())
+	dt, err := getDeletionTime(r)
 	if err != nil {
 		log.Printf("Invalid deletion time!")
 		http.Error(w, "Bad request! (Invalid deletion time.)", http.StatusBadRequest)
