@@ -37,34 +37,58 @@ func main() {
 	// Create controllers
 	locCtrl := controller.NewLocationController(locRepo)
 
-	// Create middlewares
-	authMidw := middleware.NewAuthMiddleware(conf)
-
-	// Create protected middleware route
-	proRoute := negroni.New()
-	proRoute.UseFunc(authMidw.GetAuthHandlerFunc())
-
 	// Create router
 	router := mux.NewRouter().StrictSlash(true)
 	// Create API sub route
 	apiRoute := router.PathPrefix("/api/v1").Subrouter()
-	// Add protected routes
-	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.GetLocationsHandler())).Methods("GET")
-	apiRoute.Handle("/loc", createRoute(proRoute, locCtrl.CreateLocationHandler())).Methods("POST")
-	apiRoute.Handle("/loc/deleted", createRoute(proRoute, locCtrl.GetDeletedLocationIdsHandler())).
-		Methods("GET")
-	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.GetLocationHandler())).
-		Methods("GET")
-	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.ChangeLocationHandler())).
-		Methods("PUT")
-	apiRoute.Handle("/loc/{id}", createRoute(proRoute, locCtrl.DeleteLocationHandler())).
-		Methods("DELETE")
+	// Add endpoints
+	// GET /loc
+	apiRoute.Methods("GET").
+		Path("/loc").
+		Handler(locCtrl.GetLocationsHandler())
+	// GET /loc?change_time={change_time}
+	apiRoute.Methods("GET").
+		Path("/loc").
+		Queries("change_time", "{change_time}").
+		Handler(locCtrl.GetLocationsHandler())
+	// POST /loc
+	apiRoute.Methods("POST").
+		Path("/loc").
+		Handler(locCtrl.CreateLocationHandler())
+	// GET /loc/deleted
+	apiRoute.Methods("GET").
+		Path("/loc/deleted").
+		Handler(locCtrl.GetDeletedLocationIdsHandler())
+	// GET /loc/deleted?deletion_time={deletion_time}
+	apiRoute.Methods("GET").
+		Path("/loc/deleted").
+		Queries("deletion_time", "{deletion_time}").
+		Handler(locCtrl.GetDeletedLocationIdsHandler())
+	// GET /loc/{id}
+	apiRoute.Methods("GET").
+		Path("/loc/{id}").
+		Handler(locCtrl.GetLocationHandler())
+	// PUT /loc/{id}
+	apiRoute.Methods("PUT").
+		Path("/loc/{id}").
+		Handler(locCtrl.ChangeLocationHandler())
+	// DELETE /loc/{id}
+	apiRoute.Methods("DELETE").
+		Path("/loc/{id}").
+		Handler(locCtrl.DeleteLocationHandler())
 
-	// Add CORS middleware
-	handler := cors.AllowAll().Handler(router)
+	// Create middlewares
+	authMidw := middleware.NewAuthMiddleware(conf)
+	corsMidw := cors.AllowAll()
+
+	// Create middleware
+	midw := negroni.New()
+	midw.Use(corsMidw)
+	midw.Use(authMidw)
+	midw.UseHandler(router)
 
 	// Register handler
-	http.Handle("/", handler)
+	http.Handle("/", midw)
 
 	// Start HTTP server
 	log.Printf("Listen on port '%d'.", conf.Port)

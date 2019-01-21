@@ -4,8 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/codegangsta/negroni"
-
 	"kellnhofer.com/tracker/config"
 )
 
@@ -19,15 +17,7 @@ func NewAuthMiddleware(conf *config.Config) *AuthMiddleware {
 
 // --- Public methods ---
 
-func (m AuthMiddleware) GetAuthHandlerFunc() negroni.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
-		m.checkAuth(w, r, next)
-	}
-}
-
-// --- Private methods ---
-
-func (m AuthMiddleware) checkAuth(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
+func (m AuthMiddleware) ServeHTTP(w http.ResponseWriter, r *http.Request, next http.HandlerFunc) {
 	// Authenticated?
 	auth := r.Header.Get("Authorization")
 	if auth == m.conf.Password {
