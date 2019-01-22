@@ -2,5 +2,6 @@ debug
 debug~
 
 tracker
+tracker-*.zip
 
 /data/data.db
